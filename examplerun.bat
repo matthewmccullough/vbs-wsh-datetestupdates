@@ -1,0 +1,1 @@
+cscript autoupdate.vbs ".\dest" "\\someserver\source"
