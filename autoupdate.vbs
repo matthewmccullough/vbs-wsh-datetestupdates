@@ -1,7 +1,7 @@
 Option Explicit 
 
 'Enable Error Handling
-REM On Error Resume Next
+Rem On Error Resume Next
 
 'Define Variables
 Dim fso
@@ -12,6 +12,9 @@ Dim dateOrig, dateRemote
 Dim diffMinutes
 Dim sysPropFolderRemote
 Dim folderOrig, folderOrigTemp, folderLocalTemp, folderRemote
+Dim folderOrigFolder, folderRemoteFolder
+Dim filesInOrigFolder, filesInRemoteFolder
+Dim fileOrig, fileRemote
 
 'Set up Global Objects
 Set shell = WScript.CreateObject( "WScript.Shell" )
@@ -20,25 +23,32 @@ Set fso=CreateObject("Scripting.FileSystemObject")
 'Get Command Line Arguments
 Set clArgs = WScript.Arguments
 clArgsNum = clArgs.Count
-Wscript.StdOut.WriteLine "clArgsNum = " + clArgsNum
+Wscript.StdOut.WriteLine "clArgsNum = " & clArgsNum
 If clArgsNum <> 2 Then
    WScript.Echo "Improper number of command line args detected! Usage: autoupdate.vbs <.\app\> <remoteFolderUNCPath>"
    WScript.Quit 1
 End If
 'Load Command line args into vars
 folderOrig = clArgs.Item(0)
+WScript.StdOut.WriteLine "folderOrig: " & folderOrig
 folderOrigTemp = folderOrig + ".orig"
+WScript.StdOut.WriteLine "folderOrigTemp: " & folderOrigTemp
 folderLocalTemp = folderOrig + ".new"
+WScript.StdOut.WriteLine "folderLocalTemp: " & folderLocalTemp
 folderRemote = clArgs.Item(1)
+WScript.StdOut.WriteLine "folderRemote: " & folderRemote
 
 'Alternate approach instead of command line args: get params from environment vars
 'http://cwashington.netreach.net/depo/view.asp?Index=665
-REM sysPropFolderRemote = shell.ExpandEnvironmentStrings("%C_ONE_APP_UPDATE_PATH%")
+Rem sysPropFolderRemote = shell.ExpandEnvironmentStrings("%C_ONE_APP_UPDATE_PATH%")
 'Test if system property is not null.  If not copy it into folderRemote, otherwise default it
 'IsNull -> http://www.w3schools.com/VBscript/vbscript_ref_functions.asp
 
-dateOrig=fso.getFolder(folderOrig).DateLastModified
-dateRemote=fso.getFolder(folderRemote).DateLastModified
+Set folderOrigFolder = fso.getFolder(folderOrig)
+Set folderRemoteFolder = fso.getFolder(folderRemote)
+
+dateOrig=folderOrigFolder.DateLastModified
+dateRemote=folderRemoteFolder.DateLastModified
 If Err.Number <> 0 Then
   	WScript.Echo "Error while retriving " + folderRemote
 End If
@@ -46,15 +56,21 @@ End If
 
 'Should we test each file for an update, or just one known file?
 'Loop through each file in the local directory, each pass asking if it is old than its remote counterpart
-'Set fileInLocalFolder = objFolder.Files
-'For Each objFile in colFiles
-'    Wscript.Echo objFile.Name
-'Next
+Set filesInOrigFolder = folderOrigFolder.Files
+For Each fileOrig in filesInOrigFolder
+    Wscript.StdOut.WriteLine "fileOrig being compared: " & fileOrig.Name
+    Set fileRemote = fso.GetFile(folderRemote & "\" & fileOrig.Name)
+    diffMinutes=CLng(DateDiff("n", fileOrig.DateLastModified, fileRemote.DateLastModified))
+    Wscript.StdOut.WriteLine "File comparison diffMinutes: " & diffMinutes
+    If diffMinutes > 0 Then Exit For
+Next
 
-'Test the original and remote folders for their minute-based time difference
-'Decided against any more precise granularity (like seconds) intentionally in case machines have slight time variances
-diffMinutes=CLng(DateDiff("n", dateOrig, dateRemote))
-wscript.echo diffMinutes,"Differing Minutes"
+If diffMinutes = 0 Then
+  'Test the original and remote folders for their minute-based time difference
+  'Decided against any more precise granularity (like seconds) intentionally in case machines have slight time variances
+  diffMinutes=CLng(DateDiff("n", dateOrig, dateRemote))
+  WScript.StdOut.WriteLine "Folder comparison diffMinutes: " & diffMinutes
+End If
 
 'If the difference says that the Remote is newer than the Original (>0), copy the folder recursively
 If diffMinutes > 0 Then
