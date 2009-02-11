@@ -1,12 +1,12 @@
 Option Explicit 
 
-Rem Enable Error Handling
-'On Error Resume Next
+'Enable Error Handling
+REM On Error Resume Next
 
+'Define Variables
 Dim fso
 Dim shell
 Dim clArgs, clArgsNum
-Rem Dim fileLocal, fileRemote
 
 Dim dateOrig, dateRemote
 Dim diffMinutes
@@ -31,12 +31,11 @@ folderOrigTemp = folderOrig + ".orig"
 folderLocalTemp = folderOrig + ".new"
 folderRemote = clArgs.Item(1)
 
-Rem Alternate way to get params from environment vars
-Rem http://cwashington.netreach.net/depo/view.asp?Index=665
-'sysPropFolderRemote = shell.ExpandEnvironmentStrings("%C_ONE_APP_UPDATE_PATH%")
-Rem Test if system property is not null.  If not copy it into folderRemote, otherwise default it
-Rem IsNull -> http://www.w3schools.com/VBscript/vbscript_ref_functions.asp
-
+'Alternate approach instead of command line args: get params from environment vars
+'http://cwashington.netreach.net/depo/view.asp?Index=665
+REM sysPropFolderRemote = shell.ExpandEnvironmentStrings("%C_ONE_APP_UPDATE_PATH%")
+'Test if system property is not null.  If not copy it into folderRemote, otherwise default it
+'IsNull -> http://www.w3schools.com/VBscript/vbscript_ref_functions.asp
 
 dateOrig=fso.getFolder(folderOrig).DateLastModified
 dateRemote=fso.getFolder(folderRemote).DateLastModified
@@ -45,12 +44,19 @@ If Err.Number <> 0 Then
 End If
 
 
-Rem Should we test each file for an update, or just one known file?
+'Should we test each file for an update, or just one known file?
+'Loop through each file in the local directory, each pass asking if it is old than its remote counterpart
+'Set fileInLocalFolder = objFolder.Files
+'For Each objFile in colFiles
+'    Wscript.Echo objFile.Name
+'Next
 
+'Test the original and remote folders for their minute-based time difference
+'Decided against any more precise granularity (like seconds) intentionally in case machines have slight time variances
 diffMinutes=CLng(DateDiff("n", dateOrig, dateRemote))
-
 wscript.echo diffMinutes,"Differing Minutes"
 
+'If the difference says that the Remote is newer than the Original (>0), copy the folder recursively
 If diffMinutes > 0 Then
   WScript.Echo "Update Needed. Copying Files."
   'Copy remote folder to local lib.update
@@ -73,8 +79,8 @@ WScript.Quit
 
 
 
-
-Rem http://blog.netnerds.net/2007/01/vbscript-download-and-save-a-binary-file/
+'HTTP Download Methods for Future Use
+'Reference: http://blog.netnerds.net/2007/01/vbscript-download-and-save-a-binary-file/
 
 'Download File From HTTP - Approach 1
 Function DownloadFile(DownloadUrl)
